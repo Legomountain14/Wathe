@@ -41,7 +41,7 @@ public abstract class DefaultChunkRendererMixin {
             method = "render",
             at = @At(
                     value = "FIELD",
-                    target = "Lnet/caffeinemc/mods/sodium/client/gui/SodiumGameOptions$PerformanceSettings;useBlockFaceCulling:Z"
+                    target = "Lnet/caffeinemc/mods/sodium/client/gui/SodiumOptions$PerformanceSettings;useBlockFaceCulling:Z"
             ),
             remap = false
     )
@@ -60,6 +60,7 @@ public abstract class DefaultChunkRendererMixin {
                                          ChunkRenderListIterable renderLists,
                                          TerrainRenderPass renderPass,
                                          CameraTransform camera,
+                                         boolean indexedRenderingEnabled,
                                          CallbackInfo ci,
                                          @Local(ordinal = 0) ChunkShaderInterface shader,
                                          @Local(ordinal = 0) RenderRegion region) {
@@ -78,6 +79,7 @@ public abstract class DefaultChunkRendererMixin {
                                         ChunkRenderListIterable renderLists,
                                         TerrainRenderPass renderPass,
                                         CameraTransform camera,
+                                        boolean indexedRenderingEnabled,
                                         CallbackInfo ci) {
         MemoryUtil.memFree(wathe_buffer);
         commandList.deleteBuffer(glBuffer);
@@ -96,6 +98,7 @@ public abstract class DefaultChunkRendererMixin {
             CameraTransform camera,
             TerrainRenderPass pass,
             boolean useBlockFaceCulling,
+            boolean useIndexedTessellation,
             CallbackInfo ci,
             @Local(name = "sectionIndex") int sectionIndex
     ) {
