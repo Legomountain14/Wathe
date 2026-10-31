@@ -91,11 +91,11 @@ public abstract class DefaultChunkRendererMixin {
 
     @Inject(method = "fillCommandBuffer",
             at = @At(value = "INVOKE",
-                    target =    "Lnet/caffeinemc/mods/sodium/client/render/chunk/data/SectionRenderDataUnsafe;getSliceMask(J)I"),
+                    target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/data/SectionRenderDataUnsafe;getSliceMask(J)I"),
             remap = false)
     private static void wathe$offsetScenery(
             MultiDrawBatch batch,
-            RenderRegion region,
+            RenderRegion renderRegion,
             SectionRenderDataStorage renderDataStorage,
             ChunkRenderList renderList,
             CameraTransform camera,
@@ -105,11 +105,11 @@ public abstract class DefaultChunkRendererMixin {
             CallbackInfo ci,
             @Local(name = "sectionIndex") int sectionIndex
     ) {
-        if (wathe_buffer == null) {
-            wathe_buffer = MemoryUtil.memAlloc(RenderRegion.REGION_SIZE * 16);
-            Wathe.LOGGER.warn("1.1 - offsetScenery");
-        }
         Wathe.LOGGER.warn("1 - offsetScenery");
+        if (wathe_buffer == null) {
+            Wathe.LOGGER.warn("1.1 - allocate");
+            wathe_buffer = MemoryUtil.memAlloc(RenderRegion.REGION_SIZE * 16);
+        }
         wathe_buffer.putFloat(sectionIndex * 16, 0);
         wathe_buffer.putFloat(sectionIndex * 16 + 4, 0);
         wathe_buffer.putFloat(sectionIndex * 16 + 8, 0);
@@ -124,9 +124,9 @@ public abstract class DefaultChunkRendererMixin {
             float time = WatheClient.trainComponent.getTime() + MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true);
 
             BlockPos blockPos = new BlockPos(
-                    region.getOriginX() + LocalSectionIndex.unpackX(sectionIndex) * 16,
-                    region.getOriginY() + LocalSectionIndex.unpackY(sectionIndex) * 16,
-                    region.getOriginZ() + LocalSectionIndex.unpackZ(sectionIndex) * 16
+                    renderRegion.getOriginX() + LocalSectionIndex.unpackX(sectionIndex) * 16,
+                    renderRegion.getOriginY() + LocalSectionIndex.unpackY(sectionIndex) * 16,
+                    renderRegion.getOriginZ() + LocalSectionIndex.unpackZ(sectionIndex) * 16
             );
 
             boolean trainSection = ChunkSectionPos.getSectionCoord(blockPos.getY()) >= 4;
