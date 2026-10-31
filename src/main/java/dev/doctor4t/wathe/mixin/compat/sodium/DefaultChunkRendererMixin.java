@@ -2,6 +2,7 @@ package dev.doctor4t.wathe.mixin.compat.sodium;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
+import dev.doctor4t.wathe.Wathe;
 import dev.doctor4t.wathe.client.WatheClient;
 import dev.doctor4t.wathe.compat.SodiumShaderInterface;
 import net.caffeinemc.mods.sodium.client.gl.buffer.GlBufferUsage;
@@ -64,6 +65,7 @@ public abstract class DefaultChunkRendererMixin {
                                          CallbackInfo ci,
                                          @Local(ordinal = 0) ChunkShaderInterface shader,
                                          @Local(ordinal = 0) RenderRegion region) {
+        Wathe.LOGGER.warn("2 - modifyChunkRenderBefore");
         glBuffer = commandList.createMutableBuffer();
         commandList.uploadData(glBuffer, wathe_buffer, GlBufferUsage.STREAM_DRAW);
 
@@ -81,6 +83,7 @@ public abstract class DefaultChunkRendererMixin {
                                         CameraTransform camera,
                                         boolean indexedRenderingEnabled,
                                         CallbackInfo ci) {
+        Wathe.LOGGER.warn("3 - modifyChunkRenderAfter");
         MemoryUtil.memFree(wathe_buffer);
         commandList.deleteBuffer(glBuffer);
         wathe_buffer = null;
@@ -88,7 +91,7 @@ public abstract class DefaultChunkRendererMixin {
 
     @Inject(method = "fillCommandBuffer",
             at = @At(value = "INVOKE",
-                    target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/data/SectionRenderDataUnsafe;getSliceMask(J)I"),
+                    target =    "Lnet/caffeinemc/mods/sodium/client/render/chunk/data/SectionRenderDataUnsafe;getSliceMask(J)I"),
             remap = false)
     private static void wathe$offsetScenery(
             MultiDrawBatch batch,
@@ -104,7 +107,9 @@ public abstract class DefaultChunkRendererMixin {
     ) {
         if (wathe_buffer == null) {
             wathe_buffer = MemoryUtil.memAlloc(RenderRegion.REGION_SIZE * 16);
+            Wathe.LOGGER.warn("1.1 - offsetScenery");
         }
+        Wathe.LOGGER.warn("1 - offsetScenery");
         wathe_buffer.putFloat(sectionIndex * 16, 0);
         wathe_buffer.putFloat(sectionIndex * 16 + 4, 0);
         wathe_buffer.putFloat(sectionIndex * 16 + 8, 0);
