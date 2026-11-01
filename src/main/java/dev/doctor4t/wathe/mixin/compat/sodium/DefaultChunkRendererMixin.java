@@ -2,7 +2,6 @@ package dev.doctor4t.wathe.mixin.compat.sodium;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
-import dev.doctor4t.wathe.Wathe;
 import dev.doctor4t.wathe.client.WatheClient;
 import dev.doctor4t.wathe.compat.SodiumShaderInterface;
 import net.caffeinemc.mods.sodium.client.gl.buffer.GlBufferUsage;
@@ -15,10 +14,12 @@ import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataStorage;
 import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderList;
 import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderListIterable;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.RenderListProvider;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
 import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderInterface;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
+import net.caffeinemc.mods.sodium.client.util.iterator.ByteIterator;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -27,6 +28,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.nio.ByteBuffer;
@@ -65,11 +67,25 @@ public abstract class DefaultChunkRendererMixin {
                                          CallbackInfo ci,
                                          @Local(ordinal = 0) ChunkShaderInterface shader,
                                          @Local(ordinal = 0) RenderRegion region) {
-        Wathe.LOGGER.warn("2 - modifyChunkRenderBefore");
         glBuffer = commandList.createMutableBuffer();
         commandList.uploadData(glBuffer, wathe_buffer, GlBufferUsage.STREAM_DRAW);
 
         ((SodiumShaderInterface) shader).wathe$set(glBuffer);
+    }
+
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+            target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/region/RenderRegion;getCachedBatch(Lnet/caffeinemc/mods/sodium/client/render/chunk/terrain/TerrainRenderPass;)Lnet/caffeinemc/mods/sodium/client/gl/device/MultiDrawBatch;"))
+    private MultiDrawBatch screwYourOptimizations(RenderRegion instance, TerrainRenderPass pass, @Local(name = "renderList") ChunkRenderList renderList, @Local(name = "region") RenderRegion renderRegion, @Local(name = "camera") CameraTransform cameraTransform) {
+        MultiDrawBatch batch = instance.getCachedBatch(pass);
+        if (batch.isFilled) {
+            ByteIterator iterator = renderList.sectionsWithGeometryIterator(pass.isTranslucent());
+            if (iterator != null) {
+                while (iterator.hasNext()) {
+                    runChunkOffset(renderRegion, cameraTransform, iterator.nextByteAsInt());
+                }
+            }
+        }
+        return batch;
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE",
@@ -83,7 +99,6 @@ public abstract class DefaultChunkRendererMixin {
                                         CameraTransform camera,
                                         boolean indexedRenderingEnabled,
                                         CallbackInfo ci) {
-        Wathe.LOGGER.warn("3 - modifyChunkRenderAfter");
         MemoryUtil.memFree(wathe_buffer);
         commandList.deleteBuffer(glBuffer);
         wathe_buffer = null;
@@ -105,9 +120,11 @@ public abstract class DefaultChunkRendererMixin {
             CallbackInfo ci,
             @Local(name = "sectionIndex") int sectionIndex
     ) {
-        Wathe.LOGGER.warn("1 - offsetScenery");
+        runChunkOffset(renderRegion, camera, sectionIndex);
+    }
+
+    private static void runChunkOffset(RenderRegion renderRegion, CameraTransform camera, int sectionIndex) {
         if (wathe_buffer == null) {
-            Wathe.LOGGER.warn("1.1 - allocate");
             wathe_buffer = MemoryUtil.memAlloc(RenderRegion.REGION_SIZE * 16);
         }
         wathe_buffer.putFloat(sectionIndex * 16, 0);
